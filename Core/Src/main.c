@@ -130,10 +130,13 @@ void adxl_read (uint8_t Reg, uint8_t *Buffer, size_t len)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+	__disable_irq();
+
+	printf("0x%X \r\n",int_source);
+
     if(GPIO_Pin == GPIO_PIN_9)
     {
     	printf("2.\r\n");
-    	adxl_read (INT_SOURCE , &int_source, 1 );
     	if(int_source & (1 << 4))
     	{
     		printf("Activity Detection.\r\n");
@@ -146,7 +149,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     else if(GPIO_Pin == GPIO_PIN_7)
     {
     	printf("1.\r\n");
-    	adxl_read (INT_SOURCE , &int_source, 1 );
     	if(int_source & (1 << 5))
     	{
     		printf("Double Tap.\r\n");
@@ -156,6 +158,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     		printf("Single Tap.\r\n");
     	}
     }
+    __enable_irq();
 }
 
 void adxl_init (void)
@@ -178,7 +181,7 @@ void adxl_init (void)
 
 	////////// TAP DETECTION //////////
 		// Threshold tap, the scale factor is 62.5mg/LSB = 0.0625g/LSB
-		adxl_write (THRESH_TAP, 0x18);		// Set threshold 18 x 0.0625 = 2.5g
+		adxl_write (THRESH_TAP, 0x18);		// Set threshold 24 x 0.0625 = 1.5g
 		// Tap duration, the scale factor is 625us/LSB = 0.625ms/LSB
 		adxl_write (DUR, 0x50);				// Set duration 80 x 0.625ms = 50ms
 		// Tap latency, the scale factor is 1.25ms/LSB

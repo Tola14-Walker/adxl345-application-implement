@@ -132,30 +132,33 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	__disable_irq();
 
-	printf("0x%X \r\n",int_source);
-
-    if(GPIO_Pin == GPIO_PIN_9)
+	adxl_read (INT_SOURCE , &int_source, 1 );
+    if(GPIO_Pin == GPIO_PIN_7)
     {
-    	printf("2.\r\n");
-    	if(int_source & (1 << 4))
-    	{
-    		printf("Activity Detection.\r\n");
-    	}
-    	else if(int_source & (1 << 3))
-    	{
-    		printf("Inactivity Detection.\r\n");
-    	}
-    }
-    else if(GPIO_Pin == GPIO_PIN_7)
-    {
-    	printf("1.\r\n");
+    	printf("INT1 : ");
     	if(int_source & (1 << 5))
     	{
+    		// IF 0[1]000000	Double Tap
     		printf("Double Tap.\r\n");
     	}
     	else if(int_source & (1 << 6))
     	{
+    		// IF 00[1]00000	Single Tap
     		printf("Single Tap.\r\n");
+    	}
+    }
+    else if(GPIO_Pin == GPIO_PIN_9)
+    {
+    	printf("INT2 : ");
+    	if(int_source & (1 << 4))
+    	{
+    		// IF 000[1]0000	Activity
+    		printf("Activity Detection.\r\n");
+    	}
+    	else if(int_source & (1 << 3))
+    	{
+    		// IF 0000[1]000	Inactivity
+    		printf("Inactivity Detection.\r\n");
     	}
     }
     __enable_irq();
@@ -167,8 +170,13 @@ void adxl_init (void)
 	if (chipID == 0xE5)
 	{
 		adxl_write (POWER_CTL, 0x00);		// Standby mode for initialize
-		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode Output Data Rate 800Hz
-		adxl_write (DATA_FORMAT, 0x0B);		// ±16 g full resolution 13-bit mode and right-justified mode
+		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode and Output Data Rate 800Hz
+
+	////////// DATA FORMAT //////////
+		// 0000[1]011		Set in full resolution mode
+		// 00001[0]11		Set in the right-justified mode
+		// 000010[11]		Set the g range in // ±16 g
+		adxl_write (DATA_FORMAT, 0x0B);
 
 	////////// OFFSET CALIBRATION //////////
 		// The scale factor of offset is 15.6mg/LSB = 0.0156g/LSB
@@ -193,11 +201,11 @@ void adxl_init (void)
 
 	////////// ACTIVITY ANS INACTIVITY DETECTION //////////
 		// Threshold activity, the scale factor is 62.5mg/LSB = 0.0625g/LSB
-		adxl_write (THRESH_ACT, 0x03);		// set threshold activity
+		adxl_write (THRESH_ACT, 0x03);		// set threshold activity 3 x 0.0625g = 0.1875g
 		// Threshold inactivity, The scale factor of is 62.5mg/LSB = 0.0625g/LSB
-		adxl_write (THRESH_INACT, 0x02);	// set threshold inactivity
+		adxl_write (THRESH_INACT, 0x02);	// set threshold inactivity 2 x 0.0625g = 0.125g
 		// Time inactivity, the scale factor is 1sec/LSB
-		adxl_write (TIME_INACT, 0x05);		// set time inactivity
+		adxl_write (TIME_INACT, 0x05);		// set time inactivity 5 x 1sec = 5sec
 		// Control activity detection axis
 		// ACT_ACT_CTL 0x60: 0110 0000 DC-coupled and detected X and Y axis
 		// ACT_INACT_CTL 0x06: 0000 0110 DC-coupled and detected X and Y axis
@@ -206,20 +214,14 @@ void adxl_init (void)
 	////////// INTERRUPTS //////////
 		adxl_write (INT_ENABLE, 0x00);		// Clear interrupt functions
 		adxl_write (INT_MAP, 0x18);			// Set Single-Double Tap INI1 and Activity&Inactivity INIT2
-		adxl_write (INT_ENABLE, 0x78);		// Enable interrupt activity and inactivity function
+		adxl_write (INT_ENABLE, 0x78);		// Enable interrupt tap, activity and inactivity functions
 
-//		adxl_write (FIFO_CTL, 0xCA);		// 10-sample, trigger mode and link with INT1
-
-//		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode Output Data Rate 800Hz
-//
 		adxl_write (POWER_CTL, 0x28);		// Charge power mode to measure mode and enable link bit
-
 		HAL_Delay(500);
 	}
 }
 void adxl_read_data (void)
 {
-	adxl_read (INT_SOURCE , &int_source, 1 );
 	adxl_read (DATAX0, XData, 2);
 	adxl_read (DATAY0, YData, 2);
 	adxl_read (DATAZ0, ZData, 2);
@@ -233,16 +235,7 @@ void adxl_read_data (void)
 	yg = (float)y*0.0039 ;
 	zg = (float)z*0.0039 ;
 
-//	  if( count <= 1000)
-//	  {
-//		  // Print it as data CSV format file
-//	      printf("%d;\%.3f; %.3f; %.3f\r\n",count,xg,yg,zg);
-//	      count++;
-//	  }
-
-//	printf("ID Device: 0x%X === X:\%.3f; Y:%.3f ; Z:%.3f \r\n",chipID,xg,yg,zg);
-
-	HAL_Delay(10);
+	HAL_Delay(100);
 }
 
 

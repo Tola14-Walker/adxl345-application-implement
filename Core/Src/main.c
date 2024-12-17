@@ -132,9 +132,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	__disable_irq();
 
-	adxl_read (INT_SOURCE , &int_source, 1 );
     if(GPIO_Pin == GPIO_PIN_7)
     {
+    	adxl_read (INT_SOURCE , &int_source, 1 );
     	printf("INT1 : ");
     	if(int_source & (1 << 5))
     	{
@@ -149,6 +149,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
     else if(GPIO_Pin == GPIO_PIN_9)
     {
+    	adxl_read (INT_SOURCE , &int_source, 1 );
     	printf("INT2 : ");
     	if(int_source & (1 << 4))
     	{

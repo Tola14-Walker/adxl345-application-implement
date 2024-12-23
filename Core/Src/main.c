@@ -134,8 +134,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
     if(GPIO_Pin == GPIO_PIN_7)
     {
-    	adxl_read (INT_SOURCE , &int_source, 1 );
     	printf("INT1 : ");
+    	adxl_read (INT_SOURCE , &int_source, 1 );
     	if(int_source & (1 << 5))
     	{
     		// IF 0[1]000000	Double Tap
@@ -149,8 +149,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
     else if(GPIO_Pin == GPIO_PIN_9)
     {
-    	adxl_read (INT_SOURCE , &int_source, 1 );
     	printf("INT2 : ");
+    	adxl_read (INT_SOURCE , &int_source, 1 );
     	if(int_source & (1 << 4))
     	{
     		// IF 000[1]0000	Activity
@@ -174,6 +174,7 @@ void adxl_init (void)
 		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode and Output Data Rate 800Hz
 
 	////////// DATA FORMAT //////////
+		// 00[0]01011		Set the interrupt to active high
 		// 0000[1]011		Set in full resolution mode
 		// 00001[0]11		Set in the right-justified mode
 		// 000010[11]		Set the g range in // ±16 g

@@ -205,15 +205,15 @@ void adxl_init (void)
 	if (chipID == 0xE5)
 	{
 		adxl_write (POWER_CTL, 0x00);		// Standby mode for initialize. (Reset all Bits.)
-		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode and Output Data Rate 800Hz
 
-		// Low Power from 12.5 Hz to 400 Hz.
-		// 000[0][1100] = 0x0C = 400  Hz
-		// 000[0][1011] = 0x0B = 200  Hz
-		// 000[0][1010] = 0x0A = 100  Hz
-		// 000[0][1001] = 0x09 = 50   Hz
-		// 000[0][1000] = 0x08 = 25   Hz
-		// 000[0][0111] = 0x07 = 12.5 Hz
+		// Low Power mode from 12.5 Hz to 400 Hz.
+		// 000[1][1100] = 0x0C = 400  Hz
+		// 000[1][1011] = 0x0B = 200  Hz
+		// 000[1][1010] = 0x0A = 100  Hz
+		// 000[1][1001] = 0x09 = 50   Hz
+		// 000[1][1000] = 0x08 = 25   Hz
+		// 000[1][0111] = 0x07 = 12.5 Hz
+		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode and Output Data Rate 800Hz
 
 	////////// DATA FORMAT //////////
 		// 00[0]01011		Set the interrupt to active high
@@ -234,7 +234,7 @@ void adxl_init (void)
 	////////// TAP DETECTION //////////
 		// Threshold tap, the scale factor is 62.5mg/LSB = 0.0625g/LSB
 		adxl_write (THRESH_TAP, 0x18);		// Set threshold 24 x 0.0625 = 1.5g
-//		adxl_write (THRESH_TAP, 0xFF);		// Set threshold 256 x 0.0625 = 16g (Maximum)
+//		adxl_write (THRESH_TAP, 0xFF);		// Set threshold 255 x 0.0625 = 15.9375g (Maximum)
 		// Tap duration, the scale factor is 625us/LSB = 0.625ms/LSB
 		adxl_write (DUR, 0x50);				// Set duration 80 x 0.625ms = 50ms
 		// Tap latency, the scale factor is 1.25ms/LSB
@@ -260,9 +260,14 @@ void adxl_init (void)
 
 	////////// INTERRUPTS //////////
 		adxl_write (INT_ENABLE, 0x00);		// Clear interrupt functions
-		adxl_write (INT_MAP, 0x78);			// Set Single-Double Tap INI1 and Activity&Inactivity INIT2
+		adxl_write (INT_MAP, 0x78);			// Set Single-Double Tap and Activity-Inactivity INIT2
 		adxl_write (INT_ENABLE, 0x78);		// Enable interrupt tap, activity and inactivity functions
 
+	////////// POWER CONTROL //////////
+		// 00[1]01011		Enable the
+		// 0000[1]011		Set in full resolution mode
+		// 00001[0]11		Set in the right-justified mode
+		// 000010[11]		Set the g range in // ±16 g
 		adxl_write (POWER_CTL, 0x28);		// Charge power mode to measure mode and enable link bit
 		HAL_Delay(500);
 	}

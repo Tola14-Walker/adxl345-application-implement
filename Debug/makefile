@@ -60,8 +60,8 @@ all: main-build
 main-build: adxl345-application-implement.elf secondary-outputs
 
 # Tool invocations
-adxl345-application-implement.elf adxl345-application-implement.map: $(OBJS) $(USER_OBJS) D:\IG\ Tech\STM32-ADXL345\STM32L152RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "adxl345-application-implement.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\IG Tech\STM32-ADXL345\STM32L152RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="adxl345-application-implement.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+adxl345-application-implement.elf adxl345-application-implement.map: $(OBJS) $(USER_OBJS) E:\Code\STM32\ADXL345_Testing\adxl345-application-implement\STM32L152RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "adxl345-application-implement.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"E:\Code\STM32\ADXL345_Testing\adxl345-application-implement\STM32L152RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="adxl345-application-implement.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

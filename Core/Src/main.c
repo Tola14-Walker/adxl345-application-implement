@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -108,10 +109,15 @@ uint8_t DATAZ1          = 0x37 ; 	// Z-axis data 1
 uint8_t FIFO_CTL        = 0x38 ; 	// FIFO control
 uint8_t FIFO_STATUS     = 0x39 ; 	// FIFO status
 
+/**
+ * To read Polling.
+ * - Write to
+ */
+
 void adxl_write (uint8_t Reg, uint8_t data)
 {
 	uint8_t writeBuf[2];
-	writeBuf[0] = Reg|0x40;  // multibyte write enabled
+	writeBuf[0] = Reg|0x40;  // multi-byte write enabled
 	writeBuf[1] = data;
 	HAL_GPIO_WritePin (GPIOB, GPIO_PIN_6, GPIO_PIN_RESET); // pull the cs pin low to enable the slave
 	HAL_SPI_Transmit (&hspi1, writeBuf, 2, 100);  // transmit the address and data
@@ -130,48 +136,84 @@ void adxl_read (uint8_t Reg, uint8_t *Buffer, size_t len)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	__disable_irq();
+    if (GPIO_Pin == GPIO_PIN_7)
+    {
+//        printf("Interrupt detected\n");
 
-    if(GPIO_Pin == GPIO_PIN_7)
-    {
-    	printf("INT1 : ");
-    	adxl_read (INT_SOURCE , &int_source, 1 );
-    	if(int_source & (1 << 5))
-    	{
-    		// IF 0[1]000000	Double Tap
-    		printf("Double Tap.\r\n");
-    	}
-    	else if(int_source & (1 << 6))
-    	{
-    		// IF 00[1]00000	Single Tap
-    		printf("Single Tap.\r\n");
-    	}
+        uint8_t int_source;
+        adxl_read(INT_SOURCE, &int_source, 1);
+
+        if (int_source & (1 << 5))
+        {
+            printf("Double Tap detected.\n");
+        }
+        else if (int_source & (1 << 6))
+        {
+            printf("Single Tap detected.\n");
+        }
+        else if (int_source & (1 << 4))
+        {
+            printf("Activity detected.\n");
+        }
+        else if (int_source & (1 << 3))
+        {
+            printf("Inactivity detected.\n");
+        }
     }
-    else if(GPIO_Pin == GPIO_PIN_9)
-    {
-    	printf("INT2 : ");
-    	adxl_read (INT_SOURCE , &int_source, 1 );
-    	if(int_source & (1 << 4))
-    	{
-    		// IF 000[1]0000	Activity
-    		printf("Activity Detection.\r\n");
-    	}
-    	else if(int_source & (1 << 3))
-    	{
-    		// IF 0000[1]000	Inactivity
-    		printf("Inactivity Detection.\r\n");
-    	}
-    }
-    __enable_irq();
 }
+//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+//{
+//	__disable_irq();
+//
+//    if(GPIO_Pin == GPIO_PIN_7)
+//    {
+//    	printf("INT1 : ");
+//    	adxl_read (INT_SOURCE , &int_source, 1 );
+//    	if(int_source & (1 << 5))
+//    	{
+//    		// IF 0[1]000000	Double Tap
+//    		printf("Double Tap.\r\n");
+//    	}
+//    	else if(int_source & (1 << 6))
+//    	{
+//    		// IF 00[1]00000	Single Tap
+//    		printf("Single Tap.\r\n");
+//    	}
+//    }
+//    else if(GPIO_Pin == GPIO_PIN_9)
+////	if(GPIO_Pin == GPIO_PIN_9)
+//    {
+//    	printf("INT2 : ");
+//    	adxl_read (INT_SOURCE , &int_source, 1 );
+//    	if(int_source & (1 << 4))
+//    	{
+//    		// IF 000[1]0000	Activity
+//    		printf("Activity Detection.\r\n");
+//    	}
+//    	else if(int_source & (1 << 3))
+//    	{
+//    		// IF 0000[1]000	Inactivity
+//    		printf("Inactivity Detection.\r\n");
+//    	}
+//    }
+//    __enable_irq();
+//}
 
 void adxl_init (void)
 {
 	adxl_read(DEVICE, &chipID, 1);
 	if (chipID == 0xE5)
 	{
-		adxl_write (POWER_CTL, 0x00);		// Standby mode for initialize
+		adxl_write (POWER_CTL, 0x00);		// Standby mode for initialize. (Reset all Bits.)
 		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode and Output Data Rate 800Hz
+
+		// Low Power from 12.5 Hz to 400 Hz.
+		// 000[0][1100] = 0x0C = 400  Hz
+		// 000[0][1011] = 0x0B = 200  Hz
+		// 000[0][1010] = 0x0A = 100  Hz
+		// 000[0][1001] = 0x09 = 50   Hz
+		// 000[0][1000] = 0x08 = 25   Hz
+		// 000[0][0111] = 0x07 = 12.5 Hz
 
 	////////// DATA FORMAT //////////
 		// 00[0]01011		Set the interrupt to active high
@@ -192,6 +234,7 @@ void adxl_init (void)
 	////////// TAP DETECTION //////////
 		// Threshold tap, the scale factor is 62.5mg/LSB = 0.0625g/LSB
 		adxl_write (THRESH_TAP, 0x18);		// Set threshold 24 x 0.0625 = 1.5g
+//		adxl_write (THRESH_TAP, 0xFF);		// Set threshold 256 x 0.0625 = 16g (Maximum)
 		// Tap duration, the scale factor is 625us/LSB = 0.625ms/LSB
 		adxl_write (DUR, 0x50);				// Set duration 80 x 0.625ms = 50ms
 		// Tap latency, the scale factor is 1.25ms/LSB
@@ -204,8 +247,10 @@ void adxl_init (void)
 	////////// ACTIVITY ANS INACTIVITY DETECTION //////////
 		// Threshold activity, the scale factor is 62.5mg/LSB = 0.0625g/LSB
 		adxl_write (THRESH_ACT, 0x03);		// set threshold activity 3 x 0.0625g = 0.1875g
+//		adxl_write (THRESH_ACT, 0x05);		// set threshold activity 4 x 0.0625g = 0.25g
 		// Threshold inactivity, The scale factor of is 62.5mg/LSB = 0.0625g/LSB
 		adxl_write (THRESH_INACT, 0x02);	// set threshold inactivity 2 x 0.0625g = 0.125g
+//		adxl_write (THRESH_INACT, 0x05);	// set threshold inactivity 4 x 0.0625g = 0.25g
 		// Time inactivity, the scale factor is 1sec/LSB
 		adxl_write (TIME_INACT, 0x05);		// set time inactivity 5 x 1sec = 5sec
 		// Control activity detection axis
@@ -215,7 +260,7 @@ void adxl_init (void)
 
 	////////// INTERRUPTS //////////
 		adxl_write (INT_ENABLE, 0x00);		// Clear interrupt functions
-		adxl_write (INT_MAP, 0x18);			// Set Single-Double Tap INI1 and Activity&Inactivity INIT2
+		adxl_write (INT_MAP, 0x78);			// Set Single-Double Tap INI1 and Activity&Inactivity INIT2
 		adxl_write (INT_ENABLE, 0x78);		// Enable interrupt tap, activity and inactivity functions
 
 		adxl_write (POWER_CTL, 0x28);		// Charge power mode to measure mode and enable link bit
@@ -238,6 +283,34 @@ void adxl_read_data (void)
 	zg = (float)z*0.0039 ;
 
 	HAL_Delay(100);
+}
+
+/***
+ * Function to read the Bad Detection by changing the detect the angle of delta.
+ *
+ * The concept read the angle delta is by convert the coordinate from Cartesian to Spherical.
+ */
+void Detect_Bad_Tilt(float x_g, float y_g, float z_g)
+{
+	float r, delta_angle, phi_angle;
+	float delta_deg, phi_deg;
+
+
+	r = sqrt(pow(x_g,2) + pow(y_g,2) + pow(z_g,2));
+
+	delta_angle = acos(z_g/(r));
+
+	phi_angle = atan(y_g/x_g);
+
+	delta_deg = delta_angle * (180/3.14);
+	phi_deg = phi_angle * (180/3.14);
+
+	printf("Delta = %.2f	|	Phi = %.2f\r\n", delta_deg, phi_deg);
+
+	if (delta_deg >= 30.0 && delta_deg <= 90.0)
+	{
+		printf("Bad Rider Detected!\r\n");
+	}
 }
 
 
@@ -285,6 +358,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  adxl_read_data();
+
+//	  Detect_Bad_Tilt(x,y,z);
 
   }
   /* USER CODE END 3 */
@@ -393,13 +468,13 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PC7 */
   GPIO_InitStruct.Pin = GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA9 */
   GPIO_InitStruct.Pin = GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB6 */

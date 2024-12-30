@@ -292,24 +292,28 @@ void adxl_read_data (void)
  */
 void Detect_Bad_Tilt(float x_g, float y_g, float z_g)
 {
-	float r, delta_angle, phi_angle;
-	float delta_deg, phi_deg;
+	float theta_angle, psi_angle, phi_angle;
+	float theta_deg, psi_deg, phi_deg;
 
+	//	float r, delta_angle, phi_angle;
+	//	r = sqrt(pow(x_g,2) + pow(y_g,2) + pow(z_g,2));
+	//	delta_angle = acos(z_g/(r));
+	//	phi_angle = atan(y_g/x_g);
 
-	r = sqrt(pow(x_g,2) + pow(y_g,2) + pow(z_g,2));
+	// REF an-1057
+	theta_angle = atan(x_g / sqrt((y_g * y_g) + (z_g * z_g)));
+	psi_angle = atan(y_g /sqrt((x_g * x_g) + (z_g * z_g)) );
+    phi_angle = atan(sqrt((x_g * x_g) + (y_g * y_g)) / z_g);
 
-	delta_angle = acos(z_g/(r));
-
-	phi_angle = atan(y_g/x_g);
-
-	delta_deg = delta_angle * (180/3.14);
+	theta_deg = theta_angle * (180/3.14);
+	psi_deg = psi_angle * (180/3.14);
 	phi_deg = phi_angle * (180/3.14);
 
-	printf("Delta = %.2f	|	Phi = %.2f\r\n", delta_deg, phi_deg);
+	printf("Theta = %.2f	| 	Psi = %.2f 	|	Phi = %.2f\r\n", theta_deg, psi_deg, phi_deg);
 
-	if (delta_deg >= 30.0 && delta_deg <= 90.0)
+	if (theta_deg >= 30.0 && theta_deg <= 90.0)
 	{
-		printf("Bad Rider Detected!\r\n");
+		printf("Bad Rider Detected! \r\n");
 	}
 }
 
@@ -359,7 +363,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  adxl_read_data();
 
-//	  Detect_Bad_Tilt(x,y,z);
+	  Detect_Bad_Tilt(x,y,z);
 
   }
   /* USER CODE END 3 */
@@ -468,14 +472,8 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PC7 */
   GPIO_InitStruct.Pin = GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PA9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_9;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB6 */
   GPIO_InitStruct.Pin = GPIO_PIN_6;

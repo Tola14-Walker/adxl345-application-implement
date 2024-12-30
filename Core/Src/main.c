@@ -139,65 +139,24 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     if (GPIO_Pin == GPIO_PIN_7)
     {
 //        printf("Interrupt detected\n");
-
         uint8_t int_source;
         adxl_read(INT_SOURCE, &int_source, 1);
 
-        if (int_source & (1 << 5))
-        {
-            printf("Double Tap detected.\n");
+        if (int_source & (1 << 3)){
+        	printf("Inactivity detected.\n");
         }
-        else if (int_source & (1 << 6))
-        {
-            printf("Single Tap detected.\n");
-        }
-        else if (int_source & (1 << 4))
-        {
+        else if (int_source & (1 << 4)){
             printf("Activity detected.\n");
         }
-        else if (int_source & (1 << 3))
-        {
-            printf("Inactivity detected.\n");
+        else if (int_source & (1 << 5)){
+        	printf("Double Tap detected.\n");
         }
+        else if (int_source & (1 << 6)){
+        	printf("Single Tap detected.\n");
+        }
+
     }
 }
-//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-//{
-//	__disable_irq();
-//
-//    if(GPIO_Pin == GPIO_PIN_7)
-//    {
-//    	printf("INT1 : ");
-//    	adxl_read (INT_SOURCE , &int_source, 1 );
-//    	if(int_source & (1 << 5))
-//    	{
-//    		// IF 0[1]000000	Double Tap
-//    		printf("Double Tap.\r\n");
-//    	}
-//    	else if(int_source & (1 << 6))
-//    	{
-//    		// IF 00[1]00000	Single Tap
-//    		printf("Single Tap.\r\n");
-//    	}
-//    }
-//    else if(GPIO_Pin == GPIO_PIN_9)
-////	if(GPIO_Pin == GPIO_PIN_9)
-//    {
-//    	printf("INT2 : ");
-//    	adxl_read (INT_SOURCE , &int_source, 1 );
-//    	if(int_source & (1 << 4))
-//    	{
-//    		// IF 000[1]0000	Activity
-//    		printf("Activity Detection.\r\n");
-//    	}
-//    	else if(int_source & (1 << 3))
-//    	{
-//    		// IF 0000[1]000	Inactivity
-//    		printf("Inactivity Detection.\r\n");
-//    	}
-//    }
-//    __enable_irq();
-//}
 
 void adxl_init (void)
 {
@@ -207,13 +166,13 @@ void adxl_init (void)
 		adxl_write (POWER_CTL, 0x00);		// Standby mode for initialize. (Reset all Bits.)
 
 		// Low Power mode from 12.5 Hz to 400 Hz.
-		// 000[1][1100] = 0x0C = 400  Hz
-		// 000[1][1011] = 0x0B = 200  Hz
-		// 000[1][1010] = 0x0A = 100  Hz
-		// 000[1][1001] = 0x09 = 50   Hz
-		// 000[1][1000] = 0x08 = 25   Hz
-		// 000[1][0111] = 0x07 = 12.5 Hz
-		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode and Output Data Rate 800Hz
+		// 000[1][1100] = 0x1C = 400  Hz
+		// 000[1][1011] = 0x1B = 200  Hz
+		// 000[1][1010] = 0x1A = 100  Hz
+		// 000[1][1001] = 0x19 = 50   Hz
+		// 000[1][1000] = 0x18 = 25   Hz
+		// 000[1][0111] = 0x17 = 12.5 Hz
+		adxl_write (BW_RATE, 0x1C);
 
 	////////// DATA FORMAT //////////
 		// 00[0]01011		Set the interrupt to active high
@@ -271,6 +230,38 @@ void adxl_init (void)
 		HAL_Delay(500);
 	}
 }
+
+void setBasePosition(float x, float y, float z)
+{
+    float absX = fabs(x);
+    float absY = fabs(y);
+    float absZ = fabs(z);
+
+    float basePosition = 0; // To store the final base position
+    char axis = ' ';        // To identify which axis is selected
+
+    // Dynamically choose the dominant axis
+    if (absX >= absY && absX >= absZ)
+    {
+        basePosition = x;
+        axis = 'X';
+    }
+    else if (absY >= absX && absY >= absZ)
+    {
+        basePosition = y;
+        axis = 'Y';
+    }
+    else if (absZ >= absX && absZ >= absY)
+    {
+        basePosition = z;
+        axis = 'Z';
+    }
+
+    // Output the result
+//    printf("Setting %c as the Base Position: %.2f\n", axis, basePosition);
+}
+
+
 void adxl_read_data (void)
 {
 	adxl_read (DATAX0, XData, 2);
@@ -286,7 +277,9 @@ void adxl_read_data (void)
 	yg = (float)y*0.0039 ;
 	zg = (float)z*0.0039 ;
 
-	HAL_Delay(100);
+	setBasePosition(xg,yg,zg);
+
+	HAL_Delay(10);
 }
 
 /***
@@ -313,11 +306,16 @@ void Detect_Bad_Tilt(float x_g, float y_g, float z_g)
 	psi_deg = psi_angle * (180/3.14);
 	phi_deg = phi_angle * (180/3.14);
 
-	printf("Theta = %.2f	| 	Psi = %.2f 	|	Phi = %.2f\r\n", theta_deg, psi_deg, phi_deg);
+//	printf("Theta = %.2f	| 	Psi = %.2f 	|	Phi = %.2f\r\n", theta_deg, psi_deg, phi_deg);
 
-	if (theta_deg >= 30.0 && theta_deg <= 90.0)
-	{
-		printf("Bad Rider Detected! \r\n");
+	// Theta range: 30-90 degrees
+	if (theta_deg >= 30.0 && theta_deg <= 90.0){
+		// theta range: 30-90 degrees
+		printf("Fly Motor. \r\n");
+	}
+	// Psi range: 40-60 degrees or Phi range: 40-60 degrees
+	else if ((psi_deg >= 40.0 && psi_deg <= 60.0) || (phi_deg >= 40.0 && phi_deg <= 60.0) ){
+		printf("Draft Motor. \r\n");
 	}
 }
 

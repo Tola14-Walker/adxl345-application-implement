@@ -73,6 +73,10 @@ int16_t x,y,z;
 uint8_t chipID = 0;
 float xg, yg, zg;
 
+float prevBasePosition = 0;
+char prevAxis = ' ';
+const float CHANGE_THRESHOLD = 0.3; // Adjust this threshold as needed
+
 uint8_t int_source = 0;
 
 int count = 0 ;
@@ -168,11 +172,19 @@ void adxl_init (void)
 		// Low Power mode from 12.5 Hz to 400 Hz.
 		// 000[1][1100] = 0x1C = 400  Hz
 		// 000[1][1011] = 0x1B = 200  Hz
+<<<<<<< HEAD
 		// 000[1][1010] = 0x1A = 100  Hz
 		// 000[1][1001] = 0x19 = 50   Hz
 		// 000[1][1000] = 0x18 = 25   Hz
 		// 000[1][0111] = 0x17 = 12.5 Hz
 		adxl_write (BW_RATE, 0x1C);
+=======
+		// 000[1][1010] = 0x0A = 100  Hz
+		// 000[1][1001] = 0x09 = 50   Hz
+		// 000[1][1000] = 0x08 = 25   Hz
+		// 000[1][0111] = 0x07 = 12.5 Hz
+		adxl_write (BW_RATE, 0x0D);			// Disable sleep mode and Output Data Rate 800Hz
+>>>>>>> 1388c7355fde297f17071e84d84e8692889d54a7
 
 	////////// DATA FORMAT //////////
 		// 00[0]01011		Set the interrupt to active high
@@ -231,12 +243,48 @@ void adxl_init (void)
 	}
 }
 
+<<<<<<< HEAD
+=======
+// Dynamic Base Position Calibration (Continue Polling)
+//void setBasePosition(float x, float y, float z)
+//{
+//    float absX = fabs(x);
+//    float absY = fabs(y);
+//    float absZ = fabs(z);
+//
+//    float basePosition = 0; // To store the final base position
+//    char axis = ' ';        // To identify which axis is selected
+//
+//    // Dynamically choose the dominant axis
+//    if (absX >= absY && absX >= absZ)
+//    {
+//        basePosition = x;
+//        axis = 'X';
+//    }
+//    else if (absY >= absX && absY >= absZ)
+//    {
+//        basePosition = y;
+//        axis = 'Y';
+//    }
+//    else if (absZ >= absX && absZ >= absY)
+//    {
+//        basePosition = z;
+//        axis = 'Z';
+//    }
+//
+//    // Output the result
+//    printf("Setting %c as the Base Position: %.2f\n", axis, basePosition);
+//}
+
+// Dynamic Base Position Calibration (Callback Polling)
+>>>>>>> 1388c7355fde297f17071e84d84e8692889d54a7
 void setBasePosition(float x, float y, float z)
 {
     float absX = fabs(x);
     float absY = fabs(y);
     float absZ = fabs(z);
 
+<<<<<<< HEAD
     float basePosition = 0; // To store the final base position
     char axis = ' ';        // To identify which axis is selected
 
@@ -262,6 +310,37 @@ void setBasePosition(float x, float y, float z)
 }
 
 
+=======
+    float currentBasePosition = 0;
+    char currentAxis = ' ';
+
+    if (absX >= absY && absX >= absZ)
+    {
+        currentBasePosition = x;
+        currentAxis = 'X';
+    }
+    else if (absY >= absX && absY >= absZ)
+    {
+        currentBasePosition = y;
+        currentAxis = 'Y';
+    }
+    else if (absZ >= absX && absZ >= absY)
+    {
+        currentBasePosition = z;
+        currentAxis = 'Z';
+    }
+
+    // Check if there's a significant change in position or axis
+    if (currentAxis != prevAxis || fabs(currentBasePosition - prevBasePosition) > CHANGE_THRESHOLD)
+    {
+        printf("Position Changed (%c) axis is now dominant: %.2f\n", currentAxis, currentBasePosition);
+
+        prevAxis = currentAxis;
+        prevBasePosition = currentBasePosition;
+    }
+}
+
+>>>>>>> 1388c7355fde297f17071e84d84e8692889d54a7
 void adxl_read_data (void)
 {
 	adxl_read (DATAX0, XData, 2);
@@ -279,7 +358,11 @@ void adxl_read_data (void)
 
 	setBasePosition(xg,yg,zg);
 
+<<<<<<< HEAD
 	HAL_Delay(10);
+=======
+	HAL_Delay(100);
+>>>>>>> 1388c7355fde297f17071e84d84e8692889d54a7
 }
 
 /***
@@ -291,11 +374,6 @@ void Detect_Bad_Tilt(float x_g, float y_g, float z_g)
 {
 	float theta_angle, psi_angle, phi_angle;
 	float theta_deg, psi_deg, phi_deg;
-
-	//	float r, delta_angle, phi_angle;
-	//	r = sqrt(pow(x_g,2) + pow(y_g,2) + pow(z_g,2));
-	//	delta_angle = acos(z_g/(r));
-	//	phi_angle = atan(y_g/x_g);
 
 	// REF an-1057
 	theta_angle = atan(x_g / sqrt((y_g * y_g) + (z_g * z_g)));
@@ -365,7 +443,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  adxl_read_data();
 
-	  Detect_Bad_Tilt(x,y,z);
+//	  Detect_Bad_Tilt(x,y,z);
 
   }
   /* USER CODE END 3 */

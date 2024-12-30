@@ -73,6 +73,10 @@ int16_t x,y,z;
 uint8_t chipID = 0;
 float xg, yg, zg;
 
+float prevBasePosition = 0;
+char prevAxis = ' ';
+const float CHANGE_THRESHOLD = 0.3; // Adjust this threshold as needed
+
 uint8_t int_source = 0;
 
 int count = 0 ;
@@ -161,43 +165,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         }
     }
 }
-//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-//{
-//	__disable_irq();
-//
-//    if(GPIO_Pin == GPIO_PIN_7)
-//    {
-//    	printf("INT1 : ");
-//    	adxl_read (INT_SOURCE , &int_source, 1 );
-//    	if(int_source & (1 << 5))
-//    	{
-//    		// IF 0[1]000000	Double Tap
-//    		printf("Double Tap.\r\n");
-//    	}
-//    	else if(int_source & (1 << 6))
-//    	{
-//    		// IF 00[1]00000	Single Tap
-//    		printf("Single Tap.\r\n");
-//    	}
-//    }
-//    else if(GPIO_Pin == GPIO_PIN_9)
-////	if(GPIO_Pin == GPIO_PIN_9)
-//    {
-//    	printf("INT2 : ");
-//    	adxl_read (INT_SOURCE , &int_source, 1 );
-//    	if(int_source & (1 << 4))
-//    	{
-//    		// IF 000[1]0000	Activity
-//    		printf("Activity Detection.\r\n");
-//    	}
-//    	else if(int_source & (1 << 3))
-//    	{
-//    		// IF 0000[1]000	Inactivity
-//    		printf("Inactivity Detection.\r\n");
-//    	}
-//    }
-//    __enable_irq();
-//}
 
 void adxl_init (void)
 {
@@ -207,8 +174,8 @@ void adxl_init (void)
 		adxl_write (POWER_CTL, 0x00);		// Standby mode for initialize. (Reset all Bits.)
 
 		// Low Power mode from 12.5 Hz to 400 Hz.
-		// 000[1][1100] = 0x0C = 400  Hz
-		// 000[1][1011] = 0x0B = 200  Hz
+		// 000[1][1100] = 0x1C = 400  Hz
+		// 000[1][1011] = 0x1B = 200  Hz
 		// 000[1][1010] = 0x0A = 100  Hz
 		// 000[1][1001] = 0x09 = 50   Hz
 		// 000[1][1000] = 0x08 = 25   Hz
@@ -272,36 +239,72 @@ void adxl_init (void)
 	}
 }
 
+// Dynamic Base Position Calibration (Continue Polling)
+//void setBasePosition(float x, float y, float z)
+//{
+//    float absX = fabs(x);
+//    float absY = fabs(y);
+//    float absZ = fabs(z);
+//
+//    float basePosition = 0; // To store the final base position
+//    char axis = ' ';        // To identify which axis is selected
+//
+//    // Dynamically choose the dominant axis
+//    if (absX >= absY && absX >= absZ)
+//    {
+//        basePosition = x;
+//        axis = 'X';
+//    }
+//    else if (absY >= absX && absY >= absZ)
+//    {
+//        basePosition = y;
+//        axis = 'Y';
+//    }
+//    else if (absZ >= absX && absZ >= absY)
+//    {
+//        basePosition = z;
+//        axis = 'Z';
+//    }
+//
+//    // Output the result
+//    printf("Setting %c as the Base Position: %.2f\n", axis, basePosition);
+//}
+
+// Dynamic Base Position Calibration (Callback Polling)
 void setBasePosition(float x, float y, float z)
 {
     float absX = fabs(x);
     float absY = fabs(y);
     float absZ = fabs(z);
 
-    float basePosition = 0; // To store the final base position
-    char axis = ' ';        // To identify which axis is selected
+    float currentBasePosition = 0;
+    char currentAxis = ' ';
 
-    // Dynamically choose the dominant axis
     if (absX >= absY && absX >= absZ)
     {
-        basePosition = x;
-        axis = 'X';
+        currentBasePosition = x;
+        currentAxis = 'X';
     }
     else if (absY >= absX && absY >= absZ)
     {
-        basePosition = y;
-        axis = 'Y';
+        currentBasePosition = y;
+        currentAxis = 'Y';
     }
     else if (absZ >= absX && absZ >= absY)
     {
-        basePosition = z;
-        axis = 'Z';
+        currentBasePosition = z;
+        currentAxis = 'Z';
     }
 
-    // Output the result
-    printf("Setting %c as the Base Position: %.2f\n", axis, basePosition);
-}
+    // Check if there's a significant change in position or axis
+    if (currentAxis != prevAxis || fabs(currentBasePosition - prevBasePosition) > CHANGE_THRESHOLD)
+    {
+        printf("Position Changed (%c) axis is now dominant: %.2f\n", currentAxis, currentBasePosition);
 
+        prevAxis = currentAxis;
+        prevBasePosition = currentBasePosition;
+    }
+}
 
 void adxl_read_data (void)
 {
@@ -332,11 +335,6 @@ void Detect_Bad_Tilt(float x_g, float y_g, float z_g)
 {
 	float theta_angle, psi_angle, phi_angle;
 	float theta_deg, psi_deg, phi_deg;
-
-	//	float r, delta_angle, phi_angle;
-	//	r = sqrt(pow(x_g,2) + pow(y_g,2) + pow(z_g,2));
-	//	delta_angle = acos(z_g/(r));
-	//	phi_angle = atan(y_g/x_g);
 
 	// REF an-1057
 	theta_angle = atan(x_g / sqrt((y_g * y_g) + (z_g * z_g)));
@@ -401,7 +399,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  adxl_read_data();
 
-	  Detect_Bad_Tilt(x,y,z);
+//	  Detect_Bad_Tilt(x,y,z);
 
   }
   /* USER CODE END 3 */

@@ -264,11 +264,10 @@ void adxl_init (void)
 		adxl_write (INT_ENABLE, 0x78);		// Enable interrupt tap, activity and inactivity functions
 
 	////////// POWER CONTROL //////////
-		// 00[1]01011		Enable the
-		// 0000[1]011		Set in full resolution mode
-		// 00001[0]11		Set in the right-justified mode
-		// 000010[11]		Set the g range in // ±16 g
-		adxl_write (POWER_CTL, 0x28);		// Charge power mode to measure mode and enable link bit
+		// 00[1]11000		Enable the link bit
+		// 001[1]1000		Enable the  AUTO-SLEEP bit
+		// 0011[1]000		Change Power mode to Measurement mode
+		adxl_write (POWER_CTL, 0x38);
 		HAL_Delay(500);
 	}
 }

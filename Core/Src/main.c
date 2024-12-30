@@ -271,6 +271,38 @@ void adxl_init (void)
 		HAL_Delay(500);
 	}
 }
+
+void setBasePosition(float x, float y, float z)
+{
+    float absX = fabs(x);
+    float absY = fabs(y);
+    float absZ = fabs(z);
+
+    float basePosition = 0; // To store the final base position
+    char axis = ' ';        // To identify which axis is selected
+
+    // Dynamically choose the dominant axis
+    if (absX >= absY && absX >= absZ)
+    {
+        basePosition = x;
+        axis = 'X';
+    }
+    else if (absY >= absX && absY >= absZ)
+    {
+        basePosition = y;
+        axis = 'Y';
+    }
+    else if (absZ >= absX && absZ >= absY)
+    {
+        basePosition = z;
+        axis = 'Z';
+    }
+
+    // Output the result
+    printf("Setting %c as the Base Position: %.2f\n", axis, basePosition);
+}
+
+
 void adxl_read_data (void)
 {
 	adxl_read (DATAX0, XData, 2);
@@ -285,6 +317,8 @@ void adxl_read_data (void)
 	xg = (float)x*0.0039 ;
 	yg = (float)y*0.0039 ;
 	zg = (float)z*0.0039 ;
+
+	setBasePosition(xg,yg,zg);
 
 	HAL_Delay(100);
 }
